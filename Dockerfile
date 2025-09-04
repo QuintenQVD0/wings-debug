@@ -13,13 +13,20 @@ RUN CGO_ENABLED=0 go build \
     -trimpath \
     -o wings \
     wings.go
+
+# Install restic for backups
+RUN go install github.com/restic/restic/cmd/restic@latest
+
 RUN echo "ID=\"distroless\"" > /etc/os-release
 
 # Stage 2 (Final)
 FROM gcr.io/distroless/static:latest
+COPY --from=builder /go/bin/restic /restic
 COPY --from=builder /etc/os-release /etc/os-release
 
 COPY --from=builder /app/wings /usr/bin/
+ENV RUNNING_IN_CONTAINER=true
+VOLUME /cache
 CMD [ "/usr/bin/wings", "--config", "/etc/pelican/config.yml" ]
 
 EXPOSE 8080

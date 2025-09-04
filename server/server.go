@@ -16,6 +16,7 @@ import (
 	"github.com/apex/log"
 	"github.com/creasty/defaults"
 	"github.com/goccy/go-json"
+	"github.com/pelican-dev/wings/server/backup"
 
 	"github.com/pelican-dev/wings/config"
 	"github.com/pelican-dev/wings/environment"
@@ -165,7 +166,6 @@ func DetermineServerTimezone(envvars map[string]interface{}, defaultTimezone str
 	// Return the defaultTimezone if SERVER_TIMEZONE is not set, empty, or invalid
 	return defaultTimezone
 }
-
 
 // parseInvocation parses the start command in the same way we already do in the entrypoint
 // We can use this to set the container command with all variables replaced.
@@ -435,7 +435,13 @@ func (s *Server) ToAPIResponse() APIResponse {
 	}
 }
 
-func (s *Server) RemoveAllServerBackups() error {
+func (s *Server) RemoveAllServerBackups(ctx context.Context) error {
+	// Remove any Restic backups, if it errors then oh well, not like we can really do anything about it
+	err := backup.ResticRemoveAll(s.client, ctx, s.ID())
+	if err != nil {
+		log.Debugf("server: failed to remove all restic backups %s", err)
+	}
+
 	sp := path.Join(config.Get().System.BackupDirectory, s.ID())
 	// This should never be possible, but we'll check it anyway.
 	if sp == config.Get().System.BackupDirectory {

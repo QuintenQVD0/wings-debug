@@ -148,7 +148,20 @@ func (c *client) ValidateSftpCredentials(ctx context.Context, request SftpAuthRe
 
 func (c *client) GetBackupRemoteUploadURLs(ctx context.Context, backup string, size int64) (BackupRemoteUploadResponse, error) {
 	var data BackupRemoteUploadResponse
-	res, err := c.Get(ctx, fmt.Sprintf("/backups/%s", backup), q{"size": strconv.FormatInt(size, 10)})
+	res, err := c.Get(ctx, fmt.Sprintf("/backups/%s/s3", backup), q{"size": strconv.FormatInt(size, 10)})
+	if err != nil {
+		return data, err
+	}
+	defer res.Body.Close()
+	if err := res.BindJSON(&data); err != nil {
+		return data, err
+	}
+	return data, nil
+}
+
+func (c *client) GetResticDetails(ctx context.Context) (ResticBackupDetails, error) {
+	var data ResticBackupDetails
+	res, err := c.Get(ctx, fmt.Sprintf("/backups/0/restic"), nil)
 	if err != nil {
 		return data, err
 	}
